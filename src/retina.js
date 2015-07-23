@@ -10,7 +10,13 @@
 
         // Resize high-resolution images to original image's pixel dimensions
         // https://github.com/imulus/retinajs/issues/8
-        force_original_dimensions: true
+        force_original_dimensions: true,
+
+        //Whether or not to check all images for their corresponding
+        //@2x image.  If you enable this any images withouth a @2x clone
+        //will throw a 404 error and slow loading.  You can manually specify
+        //a retina image by using the data-at2x rel on img tags.
+        check_all : false,
     };
 
     function Retina() {}
@@ -104,28 +110,32 @@
         } else if (this.is_external()) {
             return callback(false);
         } else {
-            http = new XMLHttpRequest();
-            http.open('HEAD', this.at_2x_path);
-            http.onreadystatechange = function() {
-                if (http.readyState !== 4) {
-                    return callback(false);
-                }
-
-                if (http.status >= 200 && http.status <= 399) {
-                    if (config.check_mime_type) {
-                        var type = http.getResponseHeader('Content-Type');
-                        if (type === null || !type.match(/^image/i)) {
-                            return callback(false);
-                        }
+            if (config.check_all) {
+                http = new XMLHttpRequest();
+                http.open('HEAD', this.at_2x_path);
+                http.onreadystatechange = function() {
+                    if (http.readyState !== 4) {
+                        return callback(false);
                     }
 
-                    RetinaImagePath.confirmed_paths.push(that.at_2x_path);
-                    return callback(true);
-                } else {
-                    return callback(false);
-                }
-            };
-            http.send();
+                    if (http.status >= 200 && http.status <= 399) {
+                        if (config.check_mime_type) {
+                            var type = http.getResponseHeader('Content-Type');
+                            if (type === null || !type.match(/^image/i)) {
+                                return callback(false);
+                            }
+                        }
+
+                        RetinaImagePath.confirmed_paths.push(that.at_2x_path);
+                        return callback(true);
+                    } else {
+                        return callback(false);
+                    }
+                };
+                http.send();
+            } else {
+                return callback(false);
+            }
         }
     };
 
